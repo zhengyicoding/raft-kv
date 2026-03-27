@@ -154,6 +154,6 @@ The least overlapping project. They build a Layer 7 load balancer using Redis pu
 | ------------------------------------------------------------- | ------------------------------------------------- |
 | ✅ Repo link                                                  | https://github.com/zhengyicoding/raft-kv          |
 | ✅ Project plan (MeisterTask or similar)                      | https://github.com/users/zhengyicoding/projects/1 |
-| ✅ Initial results (correctness checker, 16 functional tests) | In Section 4                                      |
+| ✅ Initial results (correctness checker, 16 functional tests) | In Section 4 and details in local_test folder                                     |
 | ⬜ 2-minute elevator pitch video                              | To be recorded                                    |
 | ✅ Report (≤5 pages)                                          | This document                                     |
