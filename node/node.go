@@ -24,6 +24,13 @@ type Node struct {
 	FSM  *FSM
 }
 
+// HasExistingState returns true if this node already has Raft state on disk.
+// Used to avoid re-joining a cluster on restart.
+func (n *Node) HasExistingState() bool {
+	last := n.Raft.LastIndex()
+	return last > 0
+}
+
 // NewNode creates and starts a Raft node.
 func NewNode(cfg Config) (*Node, error) {
 	fsm := NewFSM()

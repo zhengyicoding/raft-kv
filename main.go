@@ -34,9 +34,11 @@ func main() {
 
 	s := store.New(n)
 
-	// --- Join the cluster if not bootstrapping ---
-	if !bootstrap && joinAddr != "" {
-		// Wait for this node's Raft to be ready, then ask the leader to add us
+	// --- Join the cluster if not bootstrapping and no existing state ---
+	// If the node already has a configuration in BoltDB (index > 0),
+	// it was previously part of the cluster and will rejoin automatically.
+	// Only call /join for brand new nodes with empty state.
+	if !bootstrap && joinAddr != "" && !n.HasExistingState() {
 		time.Sleep(500 * time.Millisecond)
 		if err := joinCluster(joinAddr, nodeID, raftAddr); err != nil {
 			log.Fatalf("failed to join cluster: %v", err)
