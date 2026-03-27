@@ -1,0 +1,21 @@
+# Go build output
+raft-kv
+*.exe
+
+# Local Raft data
+/tmp/raft-kv/
+
+# Python virtual environment
+venv/
+__pycache__/
+*.pyc
+
+# Mac
+.DS_Store
+
+# Test evidence (optional — remove this if you want screenshots in the repo)
+# evidence/
+
+# IDE
+.vscode/
+.idea/
