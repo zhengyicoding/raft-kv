@@ -21,13 +21,29 @@ type Server struct {
 func NewServer(addr string, s *store.Store) *Server {
 	return &Server{addr: addr, store: s}
 }
-
 func (s *Server) Start() error {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/key/", s.handleKey)
 	mux.HandleFunc("/health", s.handleHealth)
+	mux.HandleFunc("/join", s.handleJoin)
 	log.Printf("HTTP server listening on %s", s.addr)
 	return http.ListenAndServe(s.addr, mux)
+}
+
+// handleJoin adds a new node to the cluster.
+// Called by joining nodes: GET /join?id=node2&addr=127.0.0.1:7002
+func (s *Server) handleJoin(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("id")
+	addr := r.URL.Query().Get("addr")
+	if id == "" || addr == "" {
+		http.Error(w, "missing id or addr", http.StatusBadRequest)
+		return
+	}
+	if err := s.store.AddVoter(id, addr); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 // handleKey routes GET/PUT/DELETE /key/{key}
