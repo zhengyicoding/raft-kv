@@ -19,7 +19,7 @@ We are building a distributed key-value store powered by Raft, deployed as a 5-n
 
 In Week 1, every member independently built the entire Raft KV system end-to-end (FSM, HTTP API, Raft setup, local testing). With AI-assisted learning (Claude Code), this was feasible and gave every member a complete understanding of the full distributed systems stack.
 
-Starting Week 2, we divide experiment and infrastructure work as follows (we haven't decided which member responsible for which part, but we will have alignment next week):
+Starting Week 2, we divide experiment and infrastructure work as follows:
 
 | Member | Primary Responsibility                                                          |
 | ------ | ------------------------------------------------------------------------------- |
