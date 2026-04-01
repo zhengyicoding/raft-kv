@@ -98,12 +98,54 @@ Starting Week 2, we divide experiment and infrastructure work as follows:
 
 Each of the 5 EC2 nodes runs a single Go binary configured via environment variables (`NODE_ID`, `RAFT_ADDR`, `HTTP_ADDR`, `BOOTSTRAP`, `ELECTION_TIMEOUT`). Non-bootstrap nodes join dynamically via the leader's `/join` endpoint.
 
-**Core layers:**
+### Core layers:
 
 - **FSM (`node/fsm.go`)** — Raft state machine implementing PUT/DELETE/GET. `Apply()` is the only place state is mutated, ensuring all nodes apply operations in the same order. BoltDB-backed snapshotting for crash recovery.
 - **Node (`node/node.go`)** — wires `hashicorp/raft` with BoltDB log/stable store, TCP transport, and file snapshot store.
 - **Store (`store/store.go`)** — public KV API. Writes go through `raft.Apply()`. Reads use `Barrier()` for strong, `LastAppliedAt` timestamp for default bounded-staleness, and direct FSM reads for stale.
 - **HTTP (`http/handler.go`)** — `GET /key/{key}?level=strong|default|stale`, `PUT`, `DELETE`, `GET /health`, `GET /join`. Writes and strong reads on followers are **transparently forwarded** to the leader.
+
+### Read Consistency Modes
+
+| Mode      | Behavior                                                                                              | Tradeoff                                             |
+| --------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `strong`  | Must be served by the leader                                                                          | Linearizable, but all reads hit one node             |
+| `default` | Served by any node within a configurable staleness threshold (`LastIndex - AppliedIndex ≤ threshold`) | Balanced — bounded staleness with horizontal scaling |
+| `stale`   | Served by any node immediately                                                                        | Lowest latency, but may return stale data            |
+
+### Chaos Engineering Approach
+
+We apply the principles of chaos engineering to systematically validate fault tolerance:
+
+- **Leader kill:** SSH into the leader node and kill the process. Measure time to new election and client-visible downtime.
+- **Network partition:** Use `iptables` rules to isolate node subsets. Verify majority continues, minority halts, and state converges after healing.
+- **Latency injection:** Use `tc` (traffic control) to add artificial delay. Measure impact on commit latency and throughput.
+
+### Experiments in Detail
+
+**Experiment 1: Leader Crash Recovery**
+
+- 5-node cluster under 200 writes/sec
+- Kill leader at t=30s
+- Test with election timeouts: 150ms, 300ms, 500ms
+- Also test back-to-back leader kills
+- Metrics: election time, client downtime, writes lost, throughput recovery curve
+
+**Experiment 2: Network Partition Behavior**
+
+- Three scenarios under 200 writes/sec:
+  - Minority partition (2 nodes isolated) — majority continues
+  - Leader isolation — majority elects new leader
+  - Symmetric split (2-2-1) — no majority, cluster halts
+- After healing: correctness checker compares all 5 nodes' state
+- Metrics: throughput during partition, write rejection rate, reconciliation time
+
+**Experiment 3: Read Scalability**
+
+- Phase A: 90% read / 10% write at 2,000 req/sec. Compare leader-only vs. follower reads with 3, 4, 5 nodes.
+- Phase B: 5,000 req/sec reads with 5 nodes. Compare strong, default, stale modes.
+- Metrics: throughput scaling factor, latency (p50/p95/p99), measured staleness
+
 
 ---
 
