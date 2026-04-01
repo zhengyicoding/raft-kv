@@ -17,12 +17,19 @@ We are building a distributed key-value store powered by Raft, deployed as a 5-n
 
 **Team members:** All four members independently implemented the full stack this week — Raft core integration, HTTP API, Store API, and local testing — to ensure deep familiarity with every layer before converging on a shared codebase for deployment.
 
-| Member     | This Week                                           | Next Week                              |
-| ---------- | --------------------------------------------------- | -------------------------------------- |
-| Qian Li    | Full stack implementation + local tests             | Experiment 1: Leader crash recovery    |
-| Zhengyi Xu | Full stack + correctness checker + env var refactor | Experiment 2: Network partition        |
-| Wenyu Yang | Full stack implementation + local tests             | Experiment 3: Read scalability         |
-| Siwen Wu   | Full stack implementation + local tests             | AWS EC2 infrastructure + observability |
+In Week 1, every member independently built the entire Raft KV system end-to-end (FSM, HTTP API, Raft setup, local testing). With AI-assisted learning (Claude Code), this was feasible and gave every member a complete understanding of the full distributed systems stack.
+
+Starting Week 2, we divide experiment and infrastructure work as follows (we haven't decided which member responsible for which part, but we will have alignment next week):
+
+| Member | Primary Responsibility                                                          |
+| ------ | ------------------------------------------------------------------------------- |
+| Qian     | EC2 provisioning (Terraform) + structured JSON logging + data analysis (charts) |
+| Zhengyi      | Experiment 1: Leader Crash Recovery (chaos script + run experiment)             |
+| Wenyu      | Experiment 2: Network Partition Behavior (chaos script + run experiment)        |
+| Siwen      | Experiment 3: Read Scalability + shared load generator                          |
+
+
+**Dependencies:** Exp 1 and Exp 2 owners can write chaos scripts immediately. D builds the load generator, which all three experiments reuse. A's EC2 provisioning must complete before any experiment runs on AWS. After chaos scripts are written, A adds structured JSON logging into the scripts and the Go application, then builds the S3 collection and chart generation pipeline. Final report and video are shared across all members.
 
 **Experiments overview:** Three experiments cover the three pillars of distributed systems — fault tolerance, consistency under partition, and scalability. (1) Leader Crash Recovery validates Raft's liveness guarantee under different election timeouts. (2) Network Partition Consistency validates the CAP theorem CP behavior across three partition topologies. (3) Read Scalability quantifies the consistency-vs-throughput tradeoff across our three read modes.
 
@@ -34,30 +41,58 @@ We are building a distributed key-value store powered by Raft, deployed as a 5-n
 
 ## 2. Project Plan and Timeline
 
-**Deadline: April 20 (4 weeks total)**
+### Timeline
 
-| Week | Dates        | Milestone                                                                          | Status         |
-| ---- | ------------ | ---------------------------------------------------------------------------------- | -------------- |
-| 1    | Mar 24–30    | Full stack locally, individual implementations, correctness checker                | ✅ Complete    |
-| 2    | Mar 31–Apr 6 | Converge on codebase, deploy to AWS EC2, finalize load generator and chaos scripts | 🔄 In progress |
-| 3    | Apr 7–13     | Run all experiments, collect logs to S3, begin analysis                            | ⬜ Upcoming    |
-| 4    | Apr 14–20    | Complete analysis, charts, final report, present                                   | ⬜ Upcoming    |
+| Week                  | Milestone                                                                              | Status       |
+| --------------------- | -------------------------------------------------------------------------------------- | ------------ |
+| Week 1 (Mar 23–29)    | Raft + KV store + HTTP API working locally, local 5-node cluster tested                | **Complete** |
+| Week 2 (Mar 30–Apr 5) | AWS EC2 provisioning, deploy to AWS, chaos scripts drafted, end-to-end cluster working | Planned      |
+| Week 3 (Apr 6–12)     | Run all chaos experiments, collect data to S3, begin analysis                          | Planned      |
+| Week 4 (Apr 13–19)    | Generate charts, write final report, polish and present                                | Planned      |
 
-**Task breakdown (Week 2 onward):**
+### Task Breakdown
 
-| Task                                                          | Owner   | Due    |
-| ------------------------------------------------------------- | ------- | ------ |
-| Review individual implementations, agree on combined codebase | All     | Apr 1  |
-| Terraform: provision 5 EC2 t3.micro instances                 | Siwen   | Apr 3  |
-| Deploy binary to EC2, verify end-to-end cluster               | Siwen   | Apr 5  |
-| Locust load generator for all experiments                     | Wenyu   | Apr 5  |
-| Experiment 1: leader crash sweep (150/300/500ms)              | Qian    | Apr 10 |
-| Experiment 2: partition topologies + correctness check        | Zhengyi | Apr 10 |
-| Experiment 3: read scaling + consistency mode benchmark       | Wenyu   | Apr 10 |
-| S3 log collection + matplotlib charts                         | Siwen   | Apr 12 |
-| Final report + presentation                                   | All     | Apr 20 |
+**Phase 1 — Done (all members independently):**
 
----
+| Task                                                      | Status             |
+| --------------------------------------------------------- | ------------------ |
+| FSM implementation (`Apply`, `Snapshot`, `Restore`)       | Done (all members) |
+| HTTP API with GET/PUT/DELETE and 3 read consistency modes | Done (all members) |
+| Raft node setup (`main.go`) with configurable timeouts    | Done (all members) |
+| Local 5-node cluster testing and validation               | Done (all members) |
+
+**Phase 2 — Week 2 (parallel work):**
+
+| Task                                                                   | Owner | Status      |
+| ---------------------------------------------------------------------- | ----- | ----------- |
+| EC2 provisioning with Terraform                                        | Qian     | In progress |
+| Exp 1 chaos script (leader kill, back-to-back kill)                    | Zhengyi     | Planned     |
+| Exp 2 chaos script (`iptables` partition + heal)                       | Wenyu     | Planned     |
+| Load generator (configurable rate, read/write ratio, consistency mode) | Siwen     | Planned     |
+
+**Phase 3 — After chaos scripts done:**
+
+| Task                                                  | Owner | Status  |
+| ----------------------------------------------------- | ----- | ------- |
+| Add structured JSON logging to Go app + chaos scripts | Qian     | Planned |
+| S3 log collection pipeline                            | Qian     | Planned |
+
+**Phase 4 — Week 3 (run experiments on EC2):**
+
+| Task             | Owner | Status  |
+| ---------------- | ----- | ------- |
+| Run Experiment 1 | Zhengyi     | Planned |
+| Run Experiment 2 | Wenyu     | Planned |
+| Run Experiment 3 | Siwen     | Planned |
+
+**Phase 5 — Week 4 (all members):**
+
+| Task                                      | Owner       | Status  |
+| ----------------------------------------- | ----------- | ------- |
+| Generate charts from S3 logs (matplotlib) | Qian           | Planned |
+| Write final report                        | All members | Planned |
+| Record video                              | All members | Planned |
+
 
 ## 3. System Architecture
 
